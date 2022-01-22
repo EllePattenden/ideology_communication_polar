@@ -1,1 +1,1 @@
-# ideology_communication_polar
+Side projects that extend Kashima, Y., Perfors, A., Ferdinand, V., & Pattenden, E. (2021). Ideology, communication and polarization. Philosophical Transactions of the Royal Society B, 376(1822), 20200133.
