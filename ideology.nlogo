@@ -6,51 +6,51 @@ extensions [matrix NW]      ; this is my first time using the matrix extension, 
 
 globals [
   ; cognition (tensor product model)
-  w_i              ; learning rate (called d in the paper), larger values = slower learning in each tick, 0 < w_i < 1
-  ideology_a       ; ideology a, a 5 item vector
+  w_i              ; learning rate (called d in the paper), larger values = slower learning in each tick, 0 < w_i < 1 
+  ideology_a       ; ideology a, a 5 item vector 
 
   ; social dynamics (Friedkin)
   K                ; repeats of the Friedkin grounding process in each tick
-  sigmoid_s        ; steepness of the sigmoid function
-  influence_m      ; influence matrix
-  outgoing_info_M  ; matrix storing the opinions that agents express in each tick
+  sigmoid_s        ; steepness of the sigmoid function 
+  influence_m      ; influence matrix 
+  outgoing_info_M  ; matrix storing the opinions that agents express in each tick 
   A_M              ; the A matrix, a diagonal N × N matrix with 1 – stubborness in its element at ith row and ith column and 0 elsewhere
   I_M              ; identity matrix
-  Cf_M             ; another identity matrix; C in Friedkin model is absorbed by the tensor product model above
-  grounded_info_M  ; matrix storing output from Friedkin process
+  Cf_M             ; another identity matrix; C in Friedkin model is absorbed by the tensor product model above 
+  grounded_info_M  ; matrix storing output from Friedkin process 
 ]
 
 breed [agents an-agent]
 
 agents-own[
-  ; cognition
+  ; cognition               
   type_agent      ; 1 = ideological filter and ideological ego-involvement - takes any input as a form of confirmation of the learned ideology
-                  ; 2 = ideological filter and non-ideological ego-involvement - changes opinion depending on starting point to become staunch supporters or strong oponents
+                  ; 2 = ideological filter and non-ideological ego-involvement - changes opinion depending on starting point to become staunch supporters or strong oponents  
                   ; 3 = unbiased filter and ideological ego-involvement - initially retains a learned ideology, but change their opinions in line with the preponderance of the inputs
                   ; 4 = unbiased filter and non-ideological ego-involvement - changes opinions in accordance with inputs
   ideology        ; a noisy version of ideology_a (infuences interpreter for type 1 and 2 agents, influences the ego of type 1 and 3 agents; not relevant to type 4 agents)
-  belief_system   ; starting beliefs about the 5 topics that comprise the focal ideology (helps to shape type 2 and type 4 agents' initial memories)
+  belief_system   ; starting beliefs about the 5 topics that comprise the focal ideology (helps to shape type 2 and type 4 agents' initial memories) 
   interpreter     ; C in the paper, represents the agent's stable beliefs about associations between the n propositions which may bias the way they interpret incoming input
-  memory          ; M in the paper for memory. Initialised depending on agent type, then updated over course of simulation.
+  memory          ; M in the paper for memory. Initialised depending on agent type, then updated over course of simulation. 
   self_rep        ; self-representation - 5 item vector; memory is a conjunctive representation of this and either the agent's ideology OR their belief system after setup
-  incoming_info   ; input agent recieves to their cognitive system in a tick
-  outgoing_info   ; what the agent then sends out to the world
-  dot_product     ; similarity of outgoing_info and ideology_a
-
-  ; social
+  incoming_info   ; input agent recieves to their cognitive system in a tick 
+  outgoing_info   ; what the agent then sends out to the world 
+  dot_product     ; similarity of outgoing_info and ideology_a 
+  
+  ; social 
   stubborness     ; 'w_ii', the influence agents' have on themselves during the social influence process
-  status          ; determines the relative influence that one agent has over another at t0
+  status          ; determines the relative influence that one agent has over another at t0  
 
-  ;misc.
-  default_color   ; solor at t0, to assist with plotting
+  ;misc. 
+  default_color   ; color at t0, to assist with plotting   
 ]
 
-directed-link-breed [influences influence]    ; influence ties are directed ( influence of j on i can differ from influence of i on j)
-                                              ; they are also stored in the influence_m matrix, but represented here so that network dynamics can be observed in the interface
+directed-link-breed [influences influence]    ; influence ties are directed ( influence of j on i can differ from influence of i on j) 
+                                              ; they are also stored in the influence_m matrix, but represented here so that network dynamics can be observed in the interface 
 
 
 influences-own [
-  weight
+  weight 
 ]
 
 
@@ -62,24 +62,24 @@ to setup
   reset-ticks
   setup-world
   setup-agents
-  friedkin_as_matrix         ; matrices made life much easier here
+  friedkin_as_matrix         ; matrices made life much easier here 
 end
 
 to setup-world
   ask patches [
     set pcolor white
   ]
-
-  ; Initialise Parameters for Tensor Product (thinky bit for opinion formation and expression)
+  
+  ; Initialise Parameters for Tensor Product (thinky bit for opinion formation and expression) 
   set w_i .5
   set K 1
   set ideology_a fill-matrix 1 5  [-> (-1 + (random-float 2 ) )]     ; draw values for ideology_a from uniform distribution (-1 1)
   set ideology_a normalise matrix:get-row ideology_a 0               ; normalise using the 'normalise' to-report (scroll down)
-
+ 
   ; Initialise the Friedkin et al. part
   set sigmoid_s 2
-  set outgoing_info_M matrix:make-constant n-agents 5 0       ; empty n-agents * 5 matrix, ready to store
-
+  set outgoing_info_M matrix:make-constant n-agents 5 0       ; empty n-agents * 5 matrix, ready to store 
+ 
 end
 
 
@@ -91,207 +91,207 @@ to setup-agents
     set size .7
     set default_color color
     layout-circle agents 15                         ; position agents in circle (fully connected network at present
-
+   
     ; tensor-product traits
     set type_agent agent_type        ; cogntive style determined by chooser on interface
-                                     ; change later to include possibility for heterogeneous populations
-
+                                     ; change later to include possibility for heterogeneous populations 
+    
     ; learned ideology (of ideology_a with noise);  e0
     set ideology fill-matrix 1 5 [-> random-normal 0 .1 ]                       ; first draw the noise from normal distribution with mean of 0 and sd of .1
-    matrix:set-row ideology 0 matrix:get-row (ideology_a matrix:+ ideology) 0   ; then add that to ideology_a
+    matrix:set-row ideology 0 matrix:get-row (ideology_a matrix:+ ideology) 0   ; then add that to ideology_a 
     set ideology normalise matrix:get-row ideology 0                            ; normalise using 'normalise' to-report
-    ;print  word "normalised ideology: " matrix:pretty-print-text ideology
+    ;print  word "normalised ideology: " matrix:pretty-print-text ideology 
 
     ; self-representation; s0
-    set self_rep fill-matrix 1 5 [-> (-1 + (random-float 2 ) )]          ; each agent
-    set self_rep normalise matrix:get-row self_rep 0
+    set self_rep fill-matrix 1 5 [-> (-1 + (random-float 2 ) )]          ; each agent 
+    set self_rep normalise matrix:get-row self_rep 0 
     ;print matrix:pretty-print-text self_rep
+    
+    ;individualised belief system; eu    
+    set belief_system fill-matrix 1 5 [-> (-1 + (random-float 2 ) )]     ; expected value = 0 
+    set belief_system normalise matrix:get-row belief_system 0           ; used for agent's with non-ideological ego-involvement 
 
-    ;individualised belief system; eu
-    set belief_system fill-matrix 1 5 [-> (-1 + (random-float 2 ) )]     ; expected value = 0
-    set belief_system normalise matrix:get-row belief_system 0           ; used for agent's with non-ideological ego-involvement
-
-
-    ; interpeter and memory mechanisms, varies by type_agent (referred to as C and M in R code respectively)
+    
+    ; interpeter and memory mechanisms, varies by type_agent (referred to as C and M in R code respectively)  
     set interpreter matrix:make-constant 5 5 0
-    set memory matrix:make-constant 5 5 0
-
+    set memory matrix:make-constant 5 5 0 
+    
     ifelse type_agent = 1 or type_agent = 2 [
-      set interpreter matrix:times matrix:transpose ideology ideology    ; get an ideological filter by multiplying the transpose of the ideology vector (making it a col vec) by itself
+      set interpreter matrix:times matrix:transpose ideology ideology    ; get an ideological filter by multiplying the transpose of the ideology vector (making it a col vec) by itself  
                                           ;; LEARNING OPPORTUNITY - uncomment the following code
-                                          ;print matrix:pretty-print-text ideology       ; to see the relationship between an agents initially (learnt) ideology
-                                          ;print matrix:pretty-print-text interpreter    ; and their ideological filter.
-                                          ;; Parsegov et al. (2017) provide a nice explanation of such 'prejudices' (p. 1)
+                                          ;print matrix:pretty-print-text ideology       ; to see the relationship between an agents initially (learnt) ideology 
+                                          ;print matrix:pretty-print-text interpreter    ; and their ideological filter. 
+                                          ;; Parsegov et al. (2017) provide a nice explanation of such 'prejudices' (p. 1)                       
     ] [
-      set interpreter matrix:make-identity 5                            ; type 3 and 4 don't have an ideological filer (identity matrix instead)
+      set interpreter matrix:make-identity 5                            ; type 3 and 4 don't have an ideological filer (identity matrix instead) 
     ]
     ifelse type_agent = 1 or type_agent = 3 [
       set memory matrix:times matrix:transpose self_rep ideology        ; have ideological ego-involvement
     ] [
-      set memory matrix:times matrix:transpose self_rep belief_system   ; type 2 and 4 have non-ideological ego-involvement
+      set memory matrix:times matrix:transpose self_rep belief_system   ; type 2 and 4 have non-ideological ego-involvement  
     ]
-
-    ; Friedkin traits
-    set stubborness random-float .6
-    set status random-normal 1 1                       ;  slightly different to the paper but serves the same purpose
-    if status < 0 [ set status 0 ]                     ;  no negative statuses allowed
+    
+    ; Friedkin traits 
+    set stubborness random-float .6  
+    set status random-normal 1 1                       ;  slightly different to the paper but serves the same purpose 
+    if status < 0 [ set status 0 ]                     ;  no negative statuses allowed 
   ]
 end
 
 
 to friedkin_as_matrix
-
-  set influence_m matrix:make-constant n-agents n-agents 0             ; initialise empty n-agents x n-agents matrix
-  let list_agents n-values n-agents [i -> i]                           ; create a list of agents to loop through (order important)
+           
+  set influence_m matrix:make-constant n-agents n-agents 0             ; initialise empty n-agents x n-agents matrix  
+  let list_agents n-values n-agents [i -> i]                           ; create a list of agents to loop through (order important) 
   foreach list_agents [                                                ; now to get agents to allocate influence to themselves and others
-    i ->
+    i ->               
     foreach list_agents [                                              ; ! could have used sort ! (fix up sometime)
-     j ->
+     j ->  
       let stubborn_i item 0 [stubborness] of agents with [who = i]
       let  status_i item 0 [status] of agents with [who = i]
-      if i != j [
+      if i != j [ 
         let stubborn_j item 0 [stubborness] of agents with [who = j]
         let status_j item 0 [status] of agents with [who = j]
-        matrix:set influence_m i j sigmoid (status_i - status_j)       ; the social influence i feels from j depends on how much higher j's status is than i's
-      ]                                                                ; Stan - I realise this is probably not the best way of doing this... Any ideas ? :)
-      matrix:set influence_m i i stubborn_i                            ; add in self-influence in the i,i cell of the matrix
+        matrix:set influence_m i j sigmoid (status_i - status_j)       ; the social influence i feels from j depends on how much higher j's status is than i's                                                                
+      ]                                                                ; Stan - I realise this is probably not the best way of doing this... Any ideas ? :) 
+      matrix:set influence_m i i stubborn_i                            ; add in self-influence in the i,i cell of the matrix 
     ]
   ]
-
-  standardise_influence               ; standardise each row in the influence_m matrix
-
+  
+  standardise_influence               ; standardise each row in the influence_m matrix 
+   
   ;print matrix:pretty-print-text influence_m
-
+   
   set A_M matrix:make-constant n-agents n-agents 0
   ask agents [
-    matrix:set A_M who who (1 - stubborness)                     ; chuck 1 - their stubborness on the diag
-  ]
+    matrix:set A_M who who (1 - stubborness)                     ; chuck 1 - their stubborness on the diag 
+  ] 
   set I_M matrix:make-identity n-agents                          ; identity matrix
-  set Cf_M matrix:make-identity 5                                ; smaller identity matrix
+  set Cf_M matrix:make-identity 5                                ; smaller identity matrix 
   set grounded_info_M matrix:make-constant n-agents n-agents 0   ; empty, ready to store
-
-  nw:set-context agents influences                               ; translate weights in influence_m to 'influences' links between agents
-  let list_agents2 n-values n-agents [i -> i]
+  
+  nw:set-context agents influences                               ; translate weights in influence_m to 'influences' links between agents   
+  let list_agents2 n-values n-agents [i -> i] 
   foreach list_agents [
-    i ->
+    i -> 
     let me item 0 [who] of agents with [who = i]
     foreach list_agents2 [
-      j ->
+      j -> 
       if i != j [
         let you item 0 [who] of agents with [who = j]
         let weight_ij matrix:get influence_m me you
         ask turtle me [
-          create-influence-to turtle you [set weight weight_ij]
+          create-influence-to turtle you [set weight weight_ij]  
         ]
       ]
     ]
   ]
- visualise_ties_weighted
-
-
-end
+ visualise_ties_weighted 
+  
+ 
+end 
 
 
 ; SCHEDULE ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ;
 
-; note - in the future, this code will be compartmentalised (divided up and moved to sub procedures)
-; prioritsed getting *something* out over best practices
+; note - in the future, this code will be compartmentalised (divided up and moved to sub procedures) 
+; prioritsed getting *something* out over best practices 
 
 to go
 if ticks = 50 [stop]        ; run for 50 time steps
-
+  
   ask agents [
     ifelse social_dynamics = false [
-      ; In the absence of social dynamics, agents recieve random input in each time step
-      set incoming_info fill-matrix 1 5 [-> (-1 + (random-float 2 ) )]
-      set incoming_info normalise matrix:get-row incoming_info 0
+      ; In the absence of social dynamics, agents recieve random input in each time step 
+      set incoming_info fill-matrix 1 5 [-> (-1 + (random-float 2 ) )] 
+      set incoming_info normalise matrix:get-row incoming_info 0 
       ;print matrix:pretty-print-text incoming_info
     ]
     [  ; when the Friedkin et al. social influence process is included
-      ; still random input in first tick
+      ; still random input in first tick  
       ifelse ticks = 0 [
-        set incoming_info fill-matrix 1 5 [-> (-1 + (random-float 2 ) )]
-        set incoming_info normalise matrix:get-row incoming_info 0
-      ]
+        set incoming_info fill-matrix 1 5 [-> (-1 + (random-float 2 ) )]       
+        set incoming_info normalise matrix:get-row incoming_info 0 
+      ] 
       [ ; otherwise, get incoming_info from the information agents grounded in the last time step
-        set incoming_info matrix:from-row-list (list (matrix:get-row grounded_info_M who) )
+        set incoming_info matrix:from-row-list (list (matrix:get-row grounded_info_M who) )  
         set incoming_info normalise matrix:get-row incoming_info 0    ; normalise first though
       ]
     ]
-
-    ; Tensor Product model (thinky bit for opinion formation and expression)
-
+    
+    ; Tensor Product model (thinky bit for opinion formation and expression) 
+    
     ; 1. incoming information (another agent's opinion) is interpreted
-    let interpreted_info matrix:times interpreter matrix:transpose incoming_info        ; eti = Ci(input).
-    ; 2. source is attributed via memory
+    let interpreted_info matrix:times interpreter matrix:transpose incoming_info        ; eti = Ci(input). 
+    ; 2. source is attributed via memory  
     let sourced_info matrix:times memory interpreted_info                               ; sti = M(t−1)ieti
-    ; 3. an episodic memory is formed on the basis of ^ via Hebbian learning
-    let episodic_memory matrix:times sourced_info matrix:transpose interpreted_info
+    ; 3. an episodic memory is formed on the basis of ^ via Hebbian learning 
+    let episodic_memory matrix:times sourced_info matrix:transpose interpreted_info    
     ; 4. long-term memory is then updated
-    set memory ( matrix:times w_i memory) matrix:+ (matrix:times (1 - w_i) episodic_memory)       ; weighted av. of the existing and episodic memories
-    ; 5. finally, the agent decides how they would/will express their opinion to others
-    let  self-interepreted_memory matrix:times self_rep memory                                    ; as memory is a rank 2 tensor, activating the self_rep (a rank 1 tensor) allows a representation of the opinion vector to be retrieved
-    let normalised_self-interepreted_memory normalise matrix:get-row self-interepreted_memory 0
+    set memory ( matrix:times w_i memory) matrix:+ (matrix:times (1 - w_i) episodic_memory)       ; weighted av. of the existing and episodic memories                                                         
+    ; 5. finally, the agent decides how they would/will express their opinion to others 
+    let  self-interepreted_memory matrix:times self_rep memory                                    ; as memory is a rank 2 tensor, activating the self_rep (a rank 1 tensor) allows a representation of the opinion vector to be retrieved 
+    let normalised_self-interepreted_memory normalise matrix:get-row self-interepreted_memory 0   
     let normalised_self-interepreted_memoryT matrix:transpose normalised_self-interepreted_memory
-    set outgoing_info matrix:times interpreter normalised_self-interepreted_memoryT               ; outgoing information is also filtered by the interpreter
-                                                                                                  ; stored as column vector for consistency
-
-                              ; LEARNING OPPORTUNITY  - if you want to get a good idea of how type_agent influences this process,
+    set outgoing_info matrix:times interpreter normalised_self-interepreted_memoryT               ; outgoing information is also filtered by the interpreter 
+                                                                                                  ; stored as column vector for consistency 
+    
+                              ; LEARNING OPPORTUNITY  - if you want to get a good idea of how type_agent influences this process, 
                               ; reduce the number of agents to 1 on the interface, change the max ticks to 1, and uncomment the following code:
                              ; print matrix:pretty-print-text incoming_info                       ;  for type 3 and 4 the first two are the same
                              ; print matrix:pretty-print-text interpreted_info                    ;  (i.e., filtering is unbiased)
-                             ; print matrix:pretty-print-text sourced_info
+                             ; print matrix:pretty-print-text sourced_info                        
                              ; print matrix:pretty-print-text episodic_memory
-                             ; print matrix:pretty-print-text memory
-                             ; print matrix:pretty-print-text self-interepreted_memory            ; same as outgoing_info for type 3
-                              ;print matrix:pretty-print-text outgoing_info                       ; and type 4 agents
+                             ; print matrix:pretty-print-text memory 
+                             ; print matrix:pretty-print-text self-interepreted_memory            ; same as outgoing_info for type 3 
+                              ;print matrix:pretty-print-text outgoing_info                       ; and type 4 agents 
 
-
-    ; compare the dot product of each agent's outgoing_info and ideology_a
+    
+    ; compare the dot product of each agent's outgoing_info and ideology_a 
     set dot_product matrix:times ideology_a  outgoing_info
     set dot_product matrix:get dot_product 0 0
-    set color scale-color red dot_product -2 2                          ; set agent color to reflect this
+    set color scale-color red dot_product -2 2                          ; set agent color to reflect this 
 
     ; update plots
-    set-current-plot "similarity of expressed opinions and the taught ideology " ; main figure in the paper
-    create-temporary-plot-pen (word who)
+    set-current-plot "similarity of expressed opinions and the taught ideology " ; main figure in the paper 
+    create-temporary-plot-pen (word who)             
     set-plot-pen-color default_color
-    plotxy ticks dot_product
-
-    set-current-plot "similarity of incoming and expressed opinions"
-    create-temporary-plot-pen (word who)
+    plotxy ticks dot_product   
+   
+    set-current-plot "similarity of incoming and expressed opinions"               
+    create-temporary-plot-pen (word who)             
     set-plot-pen-color default_color
-    let comp cosine_sim incoming_info matrix:transpose outgoing_info
+    let comp cosine_sim incoming_info matrix:transpose outgoing_info 
     plotxy ticks comp
-
-    ; stick all of the agents' outgoing_info into a matrix
+    
+    ; stick all of the agents' outgoing_info into a matrix 
     matrix:set-row outgoing_info_M who matrix:get-row matrix:transpose outgoing_info 0      ; to feed into...
   ]
-
-  if mobility_when = "before" [
-   network_dynamics
-  ]
-
+  
+  if mobility_when = "before" [ 
+   network_dynamics                           ; (quick detour for network updating if set to happen "before" (Friedkin process) on interface) 
+  ] 
+  
   ; Communication and Social Infuence via Friedkin et al.'s model (if permitted)
-
+  
   if social_dynamics = true [
-    foreach n-values K [i -> i] [     ; repeat process K times
+    foreach n-values K [i -> i] [     ; repeat process K times 
       set grounded_info_M ( matrix:times A_M influence_m) matrix:* (matrix:times outgoing_info_M matrix:transpose Cf_M) matrix:+ (matrix:times ( I_M matrix:- A_M) outgoing_info_M )
     ]
   ]
 
   ;; Social network dynamics play out (if permitted)
-
-  if mobility_when = "original_schedule" [
-   network_dynamics
-  ]
-
+  
+  if mobility_when = "original_schedule" [ 
+   network_dynamics 
+  ] 
+    
    visualise_ties                              ; translate weights in influence_m to 'influences' links between agents
-   visualise_ties_weighted
-
+   visualise_ties_weighted 
+  
   ;print count influences
-  ;print matrix:pretty-print-text influence_m
-
+  ;print matrix:pretty-print-text influence_m 
+  
 
 tick
 end
@@ -311,110 +311,117 @@ to-report normalise [ vector ]                    ; normalise a vector
     x -> let val_i item x vector
     set my_list lput (val_i * val_i) my_list
   ]
-  let magn sqrt sum my_list
+  let magn sqrt sum my_list    
   let almost map [ i -> (i / magn)] vector
   ; print sqrt sum map [i -> i * i ] almost        ; check that normalising worked
-  report matrix:from-row-list (list almost)       ; report as matrix object
+  report matrix:from-row-list (list almost)       ; report as matrix object   
 end
 
-to network_dynamics
+to network_dynamics 
     if relational_mobility = true [
-    let list_agents n-values n-agents [i -> i]
+    let list_agents range n-agents 
+    ;let list_agents n-values n-agents [i -> i]
     foreach list_agents [
-    i ->
-    let me item 0 [who] of agents with [who = i]
+    i -> 
+      let me i 
+    ;let me item 0 [who] of agents with [who = i]
     foreach list_agents [
-      j ->
-        let you item 0 [who] of agents with [who = j]
-        if i != j [
+      j -> 
+        let you j 
+        ; let you item 0 [who] of agents with [who = j]
+        if i != j [ 
           if mobility_when = "original_schedule" [
-            let i_opinion matrix:from-row-list (list (matrix:get-row grounded_info_M me) )
+            let i_opinion matrix:from-row-list (list (matrix:get-row grounded_info_M me) )                    
             let j_opinion matrix:from-row-list (list (matrix:get-row grounded_info_M you) )
-            let cosim_ij cosine_sim i_opinion j_opinion
+            let cosim_ij cosine_sim i_opinion j_opinion 
             ifelse cosim_ij > 0 [
-              matrix:set influence_m i j sigmoid cosim_ij            ; ties strengthened when agent's opinions align
-            ] [                                                      ; else
-              matrix:set influence_m i j 0                           ; ties severed if they disagree
+              matrix:set influence_m i j sigmoid cosim_ij            ; ties strengthened when agent's opinions align 
+            ] [                                                      ; else 
+              matrix:set influence_m i j 0                           ; ties severed if they disagree 
             ]
           ]
-          if mobility_when = "before" [
+          if mobility_when = "before" [ 
             let i_opinion matrix:from-row-list (list (matrix:get-row outgoing_info_M me) )
             let j_opinion matrix:from-row-list (list (matrix:get-row outgoing_info_M you) )
-            let cosim_ij cosine_sim i_opinion j_opinion
+            let cosim_ij cosine_sim i_opinion j_opinion 
             ifelse cosim_ij > 0 [
-              matrix:set influence_m i j sigmoid cosim_ij            ; ties strengthened when agent's opinions align
-            ] [                                                      ; else
-              matrix:set influence_m i j 0                           ; ties severed if they disagree
+              matrix:set influence_m i j sigmoid cosim_ij            ; ties strengthened when agent's opinions align 
+            ] [                                                      ; else 
+              matrix:set influence_m i j 0                           ; ties severed if they disagree 
             ]
           ]
         ]
       ]
     ]
-    standardise_influence                      ; standardise each row of the influence_m matrix
+    standardise_influence                      ; standardise each row of the influence_m matrix 
   ]
-end
+end 
 
 
 
 to standardise_influence
-  let rows n-values n-agents [i -> i]                      ; standardise weights in influence_m so they sum to one
+  let rows range n-agents 
+  ; let rows n-values n-agents [i -> i]                      ; standardise weights in influence_m so they sum to one 
   foreach rows [
-    x ->
-    let row matrix:get-row influence_m x                   ; done by extracting relevant row
-    let total_weight sum row                               ; calculating the current total of all weights
+    x -> 
+    let row matrix:get-row influence_m x                   ; done by extracting relevant row   
+    let total_weight sum row                               ; calculating the current total of all weights 
     let temp map [i -> (i / total_weight)] row             ; *math* across call cells in row so they now sum to 1
-    matrix:set-row influence_m  x temp                     ; then updating row in influence_m
-  ]
+    matrix:set-row influence_m  x temp                     ; then updating row in influence_m 
+  ] 
 end
 
-to-report cosine_sim [vector_1 vector_2]                   ; calculate the cosine similarity (make sure that you feed in row vectors)
-  let a normalise matrix:get-row vector_1 0                ; normalise the vectors
+to-report cosine_sim [vector_1 vector_2]                   ; calculate the cosine similarity (make sure that you feed in row vectors) 
+  let a normalise matrix:get-row vector_1 0                ; normalise the vectors 
   let b normalise matrix:get-row vector_2 0
   let almost_there matrix:times a matrix:transpose b       ; calculate
-  report matrix:get almost_there 0 0                       ; extract value from matrix object and report
+  report matrix:get almost_there 0 0                       ; extract value from matrix object and report 
 end
 
-to-report sigmoid [x]
-  report ( 1 / (1 + exp (sigmoid_s * ( - x ))) )          ; sigmoid function
+to-report sigmoid [x]          
+  report ( 1 / (1 + exp (sigmoid_s * ( - x ))) )          ; sigmoid function 
 end
 
 
-to visualise_ties                                       ; translate weights in influence_m to 'influences' links between agents
-
-  nw:set-context agents influences
-  let list_agents n-values n-agents [i -> i]
+to visualise_ties                                       ; translate weights in influence_m to 'influences' links between agents 
+  nw:set-context agents influences  
+  let list_agents range n-agents
+  ; let list_agents n-values n-agents [i -> i]
   foreach list_agents [
-    i ->
-    let me item 0 [who] of agents with [who = i]        ; returns agent i's id #
+    i -> 
+    let me i 
+   ; let me item 0 [who] of agents with [who = i]        ; returns agent i's id # 
     foreach list_agents [
-      j ->
-      let you item 0 [who] of agents with [who = j]     ; returns agent j's id #
+      j -> 
+      let you j 
+      ; let you item 0 [who] of agents with [who = j]     ; returns agent j's id # 
       if me != you [
-        let weight_ij matrix:get influence_m me you                         ; influence j has on i
+        let weight_ij matrix:get influence_m me you                         ; influence j has on i 
         ask an-agent me [
           if out-influence-neighbor? an-agent you = true [                  ; if i --> j
             ifelse weight_ij = 0 [                                          ; and j's opinion contradicted i's
               ask influence-with an-agent you [die]                         ; cut the tie off
             ] [                                                             ; (else) if agent j's opinion resonated with i
-              ask influence-with an-agent you [ set weight weight_ij ]      ; increase weight of influenced tie to them
+              ask influence-with an-agent you [ set weight weight_ij ]      ; increase weight of influenced tie to them 
             ]
           ]
         ]
       ]
     ]
-  ]
-  layout-spring agents influences  .2 10 20
-end
+  ] 
+  layout-spring agents influences  .2 6 50  
+end 
 
-to visualise_ties_weighted
-  let most_influential max-one-of influences [weight]                   ; set thickness of ties to reflect relative weight in visualisation
+to visualise_ties_weighted 
+  let most_influential max-one-of influences [weight]                   ; set thickness of ties to reflect relative weight in visualisation 
   let weight_most_influential [weight] of most_influential
   ask influences [
     set thickness ( weight / weight_most_influential ) * .05
     ; set color scale-color grey ( weight / weight_most_influential ) -2 2
   ]
+  
+end 
 
-end
 
 
 
